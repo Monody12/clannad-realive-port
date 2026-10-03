@@ -1,0 +1,13 @@
+# 游戏数据与存档绝不入库(个人使用,权利归 VISUAL ARTS / Key)
+data/
+savedata/
+ClannadData/
+
+# 构建产物
+build/
+*.log
+*.apk
+
+# 系统杂项
+.DS_Store
+Thumbs.db

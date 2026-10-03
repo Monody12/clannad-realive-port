@@ -1,5 +1,7 @@
 # RLVM Project
 
+[简体中文说明(项目背景、游戏数据准备、个人使用指南)](README.zh-CN.md)
+
 **RLVM** is an open-source emulator for the RealLive virtual machine, used in Japanese visual novels. This repository contains the source code for the main emulator (`rlvm/`) and its Android port (`rlvm-r/`).
 
 ## Repository Structure
