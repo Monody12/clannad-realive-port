@@ -97,3 +97,18 @@ cp <steam>/dat/NotoSansMonoCJKsc-Regular.otf <数据目录>/font/
 桌面端已验证:开场对白完整显示简体中文(「一望无际的白色世界…」),
 字体渲染无缺字。个别开场短句(「一面、」「雪…」)疑似场景内嵌日文,
 暂未处理。`tools/dbs_decode.py` 可独立解码 DBS 检查内容。
+
+## 8. 已落地的修复:系统 UI 与翻译 CG(`_ZH` 资源,2026-10-03)
+
+官方简中的资源机制 = 基础名 + `_ZH` 后缀(266 个 g00:含右键菜单
+`_system_rmenu_*`、系统设置、翻译版 CG 等)。siglus_rs 按基础名查找而
+miss,表现为右键菜单变暗但无按钮(日志:OBJECT.CREATE PCT load failed)。
+修复 = 将全部 `*_ZH.g00` 复制为去后缀的基础名(其中 151 个覆盖基础名,
+复刻官方"简中模式"行为)。桌面已验证:右键菜单完整显示中文按钮
+(快进/返回选项/自动/保存/读取/系统设置/返回标题/取消)。
+
+**待解决(触屏菜单入口)**:CLANNAD HD 的菜单只有右键一条路(消息窗侧边
+按钮无菜单项),Android 端 JNI 只有左键触摸 → 需要 fork 自建 APK:
+给 `SiglusGameActivity` 加悬浮菜单按钮,扩展 JNI 合成右键(`host.touch`
+增加 VmMouseButton::Right 通道),同时实现单游戏定制启动器(免 IMPORT、
+换图标名、悬浮控制条),构建走 fork 仓库的 GitHub Actions。
