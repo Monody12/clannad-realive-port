@@ -51,11 +51,14 @@ clannad-realive-port/
 
 - **本仓库不包含、也不发布任何游戏素材。** 游戏数据仅限使用者自备(个人学习
   用途,不用于分发、传播或任何商业目的)。
-- 数据来源:Steam 正版《CLANNAD》(App ID 324160)。官方已通过更新加入
-  **简体中文**,无需民间汉化补丁;社区已验证 Steam 版数据可在 rlvm 上运行
-  (包括 Android 端)。
-- 准备步骤与校验方法见 **[docs/data-prep.zh-CN.md](docs/data-prep.zh-CN.md)**;
-  可用 `python tools/check_data.py <数据目录>` 做完整性检查。
+- **2026-10-03 实测结论**:Steam 版《CLANNAD》(简中 depot)的引擎是
+  **SiglusEngine**(`SiglusEngine_Steam.exe`,无 SEEN 剧本文件),**rlvm 无法
+  运行该数据**;经本机实测,**[siglus_rs](https://github.com/xmoezzz/siglus_rs)**
+  (SiglusEngine 的 Rust 跨平台重实现)可直接运行 Steam 简中数据,已渲染出
+  正常的启动页与 HD 标题画面(零未知字节码)。详见
+  **[docs/data-prep.zh-CN.md](docs/data-prep.zh-CN.md)**。
+- 仓库当前基座(rlvm-r)对应"RealLive 版数据 + 民间汉化"路线;采用
+  siglus_rs 路线时数据准备与运行时按实测文档操作,仓库基座调整见文档第 5 节。
 
 ## 构建 APK
 
@@ -95,12 +98,11 @@ adb push <游戏数据目录> /sdcard/ClannadData/
 
 ## 已知待验证事项
 
-- Steam 版官方中文的启用机制:桌面版通过 RealLiveSE 中文模式启动,Android 端
-  没有 launcher,预期依靠 rlvm 的编码覆盖(CP936)+ 游戏自身配置生效;若初次
-  启动为日文,优先尝试 rlvm-r 的编码设置。
-- 中文字体加载路径:需确认 Steam 版数据目录内是否自带字体文件,以及 rlvm
-  (FreeType)能否正确加载。
-- rlvm 对 Steam 版部分特效/滤镜指令的兼容度(上游 TO-DO 中滤镜渲染仍在修复)。
+- siglus_rs 路线:Android `app-release.apk` 实机安装与数据目录选择、
+  简中故事文本实读、自带 Noto 字体接入(`dat/NotoSansMonoCJKsc-Regular.otf`)、
+  长流程游玩稳定性;
+- rlvm-r 路线(若采用):需 RealLive 版 CLANNAD(2004–2006)数据与 GBK 汉化
+  补丁的配合验证。
 
 ## 个人使用声明
 

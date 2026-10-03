@@ -1,68 +1,80 @@
 # 游戏数据准备指南(Steam 版《CLANNAD》)
 
-本指南说明如何把自备的正版游戏数据整理成 rlvm-r 可以运行的形态。
-**仓库与 APK 均不含任何游戏素材;数据仅在个人设备上使用。**
+> **2026-10-03 实测更新**:Steam 版《CLANNAD》(简中更新后)的引擎是
+> **SiglusEngine**,不是 RealLive——以安装目录实机文件为准
+> (`SiglusEngine_Steam.exe`,无任何 `SEEN*` 剧本文件)。因此 **rlvm 无法运行
+> Steam 版数据**;经实测验证可行的运行时是 **[siglus_rs](https://github.com/xmoezzz/siglus_rs)**
+> (SiglusEngine 的 Rust 跨平台重实现,MPL-2.0)。本文档记录实测过程与结论。
 
-## 1. 获取数据
-
-1. 在 Steam 购买并安装《CLANNAD》(App ID **324160**)。
-   - Steam 版由 VisualArt's 官方维护,已通过更新加入**官方简体中文**,
-     无需再应用任何民间汉化补丁;
-   - 引擎为 RealLive 的 SE 改进版(RealLiveSE),与 rlvm 的重实现目标一致,
-     社区已有在 rlvm(含 Android 端)上运行 Steam 版数据的成功记录。
-2. 安装完成后,数据目录位于:
+## 1. 实机目录结构(简中 depot)
 
 ```
-<SteamLibrary>\steamapps\common\CLANNAD\
+steamapps/common/CLANNAD/
+├── SiglusEngine_Steam.exe   # 引擎主程序(密钥自动恢复的输入)
+├── GameexeZH.dat            # 简中版全局配置(加密)
+├── SceneZH.pck              # 简中版剧本包(~14MB)
+├── dat/                     # 系统数据库 text*.dbs、自带字体 NotoSansMonoCJKsc-Regular.otf
+├── g00/  bgm/  koe/  wav/  mov/  gan/   # 图形 / 音乐 / 语音 / 音效 / 视频
+└── SAVEDATA/  savedata_zh/
 ```
 
-判别标志:该目录下存在 `Gameexe.dat`(RealLive 引擎的全局配置文件,
-rlvm 启动时的必需文件),以及大量 `SEEN*.txt` 剧本文件和 `.g00`(图形)、
-`.nwa` / `.ogg`(音频)资源。
+注意:按 Steam 语言仓库机制,**简中安装不含日文基础包**(没有 `Scene.pck` /
+`Gameexe.dat`)。运行时重实现(siglus_rs)默认查找 `Scene.pck`,需要下述组装步骤。
 
-## 2. 校验数据完整性
+## 2. 桌面端实测(已验证 ✓,2026-10-03)
+
+环境:Windows 10,Steam 简中安装(4.5 GB),siglus_rs 最新预发布 `siglus.exe`。
+
+1. 从 [siglus_rs releases](https://github.com/xmoezzz/siglus_rs/releases)
+   下载 `siglus.exe`(Windows x86_64);
+2. 组装测试目录(避免复制 4.5 GB,大目录用 NTFS 目录联接):
+
+```
+clannad_zh/
+├── SiglusEngine_Steam.exe   # 复制(引擎从中恢复资源解密密钥)
+├── Gameexe.dat              # ← 复制 GameexeZH.dat 并改名
+├── Scene.pck                # ← 复制 SceneZH.pck 并改名
+├── g00/ bgm/ koe/ wav/ mov/ gan/ dat/   # ← 目录联接(junction)到 Steam 安装目录
+```
+
+3. 无头验证(引擎自带截图模式):
 
 ```sh
-python tools/check_data.py "C:\Program Files (x86)\Steam\steamapps\common\CLANNAD"
+./siglus.exe --project-dir <clannad_zh目录> --capture-png title.png \
+             --capture-after-frames 1500 --exit-after-capture
 ```
 
-脚本会检查 `Gameexe.dat`、统计 `SEEN*` 剧本数量、识别字体文件并汇总体积。
-只要 `Gameexe.dat` 存在且体积正常(数百 MB 以上),数据即可用。
+**实测结果**:自动完成 Siglus EXE 密钥恢复 → 解密 Gameexe.dat → 剧本字节码
+全部识别(`unknown_forms=0, unknown_elements=0`)→ 依次渲染
+`_system_start`(版权警告页)与 `_system_title`(HD 标题画面,菜单
+NEW GAME/LOAD/CONFIG/STAFF/EXIT 与 ©VISUAL ARTS/Key 均正确)。
 
-## 3. 推送到手机
+## 3. Android 端
 
-推荐用 adb(数据目录有数 GB,确保手机存储充足):
+siglus_rs 官方 release 直接提供 `app-release.apk`(~157MB,arm64-v8a),
+同一引擎。数据准备原则相同:手机上需要一个**组装后**的数据目录
+(根目录含 `SiglusEngine_Steam.exe`、`Gameexe.dat`、`Scene.pck` 与各资源
+目录)。把 Steam 目录拷到手机时,复制 `GameexeZH.dat`/`SceneZH.pck` 改名,
+其余目录原样保留即可(手机上直接物理复制,不需要联接)。
 
-```sh
-adb push "<steamapps>/common/CLANNAD" /sdcard/ClannadData/
-```
+## 4. 已知小问题(不影响验证结论)
 
-也可以用 USB 大容量传输或任意文件管理器完成,目录位置无硬性要求
-(rlvm-r 通过存储权限 + 文件夹选择器定位)。
-
-## 4. rlvm-r 内的设置
-
-| 设置项 | 位置 | 说明 |
+| 现象 | 说明 | 处置建议 |
 |---|---|---|
-| 游戏目录 | 主界面文件夹选择器 | 选中包含 `Gameexe.dat` 的目录 |
-| 编码 | Settings → Encoding | 官方简中数据选 **CP936**;按目录保存在数据目录的 `.rlvm/encoding.cfg` |
-| 字号/字体 | 暂未提供 | 上游 TO-DO 项;若默认字体不渲染中文,见"待验证事项" |
+| 配置字体未命中 | 引擎找 "Noto Sans Mono CJK SC Regular" 未果,回落内置字体 | `dat/` 自带 `NotoSansMonoCJKsc-Regular.otf`,后续研究 siglus_rs 字体加载路径接入 |
+| `DATABASE.21` 缺失 | Steam 简中 depot 本身无 `dat/text21.dbs`(00–20、22、23 存在) | 引擎仅记 note,运行无碍;亦可向上游反馈 |
+| 系统 UI 文本为日/英 | `_system_start`/`_system_title` 等系统场景沿用原版文本 | 原版即如此;故事文本走 `SceneZH.pck` 简中 |
 
-## 5. 待验证事项(首次运行时留意)
+## 5. 两条路线的现状(仓库方向待定)
 
-1. **中文如何生效**:桌面版 Steam 客户端通过 RealLiveSE 的中文启动模式
-   显示简中;Android 端没有 launcher,预期流程是 rlvm 的编码覆盖(CP936)
-   + 游戏自身语言配置。若首次启动显示日文:先在 rlvm-r 设置里切 CP936;
-   仍无效时,对照桌面版 `Gameexe.dat` 与语言相关的配置键做最小修改实验。
-2. **字体**:确认数据目录内是否自带 `.ttf/.ttc` 字体文件(`check_data.py`
-   会列出)。Steam 版大概率自带简体字体;若没有,需要把一款中文 TTF 放入
-   数据目录并研究 rlvm 的字体搜索路径(`rlvm/src/` 中 FreeType 相关代码)。
-3. **特效兼容性**:转场/滤镜类指令可能有渲染差异,不影响通关可暂时忽略,
-   有问题可对照上游 CONTRIBUTING.md 的 TO-DO 与 issue 反馈渠道。
+| | 路线 A:siglus_rs(当前可行 ✓) | 路线 B:rlvm(原计划) |
+|---|---|---|
+| 引擎 | SiglusEngine 重实现(Rust,活跃) | RealLive 重实现(C++,成熟) |
+| 数据 | **Steam 版直接可用**(官方简中自带) | 需 2004–2006 年 RealLive 版 CLANNAD + 民间汉化补丁 |
+| Android | 官方 `app-release.apk` 现成 | rlvm-r 需自行构建 |
+| 本仓库 rlvm-r 壳 | 不适用(需要换基座或仅作参考) | 适用 |
 
-## 6. 之后:《AIR》
+## 6. 仍然有效的原则
 
-同一引擎内核直接复用,只需换数据:AIR 需使用 **Standard Edition / HD**
-(RealLive 版;2000 年原版是更早的 AVG32 引擎,rlvm 不支持)。Steam 版
-AIR 的官方语言支持情况需另行确认;若无官方中文,则需评估民间汉化补丁
-(编码 GBK)与 rlvm CP936 通道的配合,流程与本文档相同。
+- 数据仅个人使用,不入库、不分发、不上公开网盘;
+- 仓库只存引擎/文档/工具,`data/` 永远在 `.gitignore` 里。
