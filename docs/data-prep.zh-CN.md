@@ -78,3 +78,22 @@ siglus_rs 官方 release 直接提供 `app-release.apk`(~157MB,arm64-v8a),
 
 - 数据仅个人使用,不入库、不分发、不上公开网盘;
 - 仓库只存引擎/文档/工具,`data/` 永远在 `.gitignore` 里。
+
+## 7. 已落地的修复:官方简中文本 + 字体(2026-10-03)
+
+实测确认:Steam 简中版的 `dat/text*.dbs` 是**双语数据库**——
+`call_no=0` 列存日文、`call_no=2` 列存简中(人名表 `text23.dbs` 同理),
+而 siglus_rs 按场景固定读取 `call_no=0`(日文列)。修复(纯数据层,无需改引擎):
+
+```sh
+# 1) 交换 call_no=0/2 两列并重加密(静态 XOR 密钥,工具见 tools/)
+python tools/dbs_swap_cn.py <steam>/dat/text00.dbs text00.dbs   # 23 个文件逐个处理
+# 2) 字体:引擎只搜索 <数据目录>/font|fonts/,把自带字体放进去
+mkdir -p <数据目录>/font
+cp <steam>/dat/NotoSansMonoCJKsc-Regular.otf <数据目录>/font/
+# 3) 重加密后的 23 个 text*.dbs + font/ 一起放入手机数据目录
+```
+
+桌面端已验证:开场对白完整显示简体中文(「一望无际的白色世界…」),
+字体渲染无缺字。个别开场短句(「一面、」「雪…」)疑似场景内嵌日文,
+暂未处理。`tools/dbs_decode.py` 可独立解码 DBS 检查内容。
